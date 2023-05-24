@@ -1,5 +1,5 @@
 from PyQt5.QtWidgets import QLayout,QWidget, QHBoxLayout,QVBoxLayout,QGridLayout,QLabel,QFrame,QListWidget,QListWidgetItem,QPushButton,QLineEdit,QFileDialog,QDialog,QProgressBar
-from PyQt5.QtCore import pyqtSlot,QThreadPool
+from PyQt5.QtCore import pyqtSlot,QThreadPool,Qt
 from job import Job
 import os
 from workspace import Workspace
@@ -42,7 +42,7 @@ class JobEditTab(QWidget):
 
         #Job file part
         self._list_widget = QListWidget(self)
-        self._list_widget.itemClicked.connect(self._modify_job)
+        self._list_widget.itemDoubleClicked.connect(self._modify_job)
         
         ##Layout
         self.job_file_layout = QVBoxLayout(self)
@@ -134,21 +134,23 @@ class JobEditTab(QWidget):
     @pyqtSlot()
     def _add_job_from_form(self):
         new_job = self._readJobForm()
-        new_job_item = JobListItem(new_job,self._list_widget)
-
         Workspace.jobs.append(new_job)
-        self._list_widget.addItem(new_job_item)
+        self._populate_job(new_job)
 
     def _add_job(self,job):
-        new_job_item = JobListItem(job,self._list_widget)
         Workspace.jobs.append(job)
-        self._list_widget.addItem(new_job_item)
+        self._populate_job(job)
 
     def repopulate_jobs(self):
         self._list_widget.clear()
         for job in Workspace.jobs:
-            new_job_item = JobListItem(job,self._list_widget)
-            self._list_widget.addItem(new_job_item)
+            self._populate_job(job)
+
+    def _populate_job(self,job):
+        new_job_item = JobListItem(job,self._list_widget)
+        new_job_item.setFlags(new_job_item.flags() or Qt.ItemIsUserCheckable)
+        new_job_item.setCheckState(Qt.Unchecked)
+        self._list_widget.addItem(new_job_item)
 
     @pyqtSlot(QListWidgetItem)
     def _remove_job(self,item):
@@ -176,23 +178,26 @@ class JobEditTab(QWidget):
         else : Workspace.setOutputDir(self.directory_entry.text())
     @pyqtSlot()
     def _setup(self):
+
         template_file = Workspace.template_file
+        checked_jobs = self.find_checked_jobs()
         try:
-            setup_scripts([Workspace.jobs[i].data for i in range(len(Workspace.jobs))] ,template_file,[Workspace.jobs[i].title for i in range(len(Workspace.jobs))],Workspace.outputDir)
+            setup_scripts([checked_jobs[i].data for i in range(len(checked_jobs))] ,template_file,[checked_jobs[i].title for i in range(len(checked_jobs))],Workspace.outputDir)
             self.message("Jobs","Files successfully set up")
         except FileNotFoundError:
             self.message("Jobs","Verify the output path")
     @pyqtSlot()
     def _launch(self):
+        checked_jobs = self.find_checked_jobs()
         try:
             pool_size = int(self.pool_entry.text())
             self.threadpool.setMaxThreadCount(pool_size)
             workers = []
             self.current_progress = 0
-            self._progressBar.setMaximum(len(Workspace.jobs))
+            self._progressBar.setMaximum(len(checked_jobs))
             self._progressBar.setValue(0)
-            for i in range(len(Workspace.jobs)):
-                worker = PostWorker(Workspace.jobs[i].title,Workspace.outputDir)
+            for i in range(len(checked_jobs)):
+                worker = PostWorker(checked_jobs[i].title,Workspace.outputDir)
                 workers.append(worker)
                 worker.signals.finished.connect(self.update_progress_bar)
                 worker.signals.started.connect(self.job_started)
@@ -210,7 +215,13 @@ class JobEditTab(QWidget):
         self.current_progress +=1
         self._progressBar.setValue(self.current_progress)
         self.message("Jobs",filename)
-
+    def find_checked_jobs(self):
+        checked = []
+        for index in range(self._list_widget.count()):
+            job_item = self._list_widget.item(index)
+            if job_item.checkState():
+                checked.append(Workspace.jobs[index])
+        return checked
     def _readJobForm(self):
         data={}
         title=''
@@ -284,7 +295,7 @@ class ModifyJobPopup(QDialog):
         self.key_input_dict["Title"] = entry
         self.jobs_form_layout.addWidget(entry,0,1)
 
-
+        index=0
         for index,key in enumerate(Workspace.keys):
             label = QLabel(key)
             self.jobs_form_layout.addWidget(label,index+1,0)
