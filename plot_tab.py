@@ -2,14 +2,14 @@ from PyQt5.QtWidgets import QWidget, QHBoxLayout,QVBoxLayout,QGridLayout,QLabel,
 from PyQt5.QtCore import pyqtSlot,QObject
 import os
 from workspace import Workspace
-
-import matplotlib
-matplotlib.use('Qt5Agg')
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg,NavigationToolbar2QT as NavigationToolbar
-from matplotlib.figure import Figure
-import matplotlib.pyplot as plt
-import matplotlib as mpl
-import matplotlib.cm as cm
+import vispy.plot as vp
+#import matplotlib
+#matplotlib.use('Qt5Agg')
+#from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg,NavigationToolbar2QT as NavigationToolbar
+#from matplotlib.figure import Figure
+#import matplotlib.pyplot as plt
+#import matplotlib as mpl
+#import matplotlib.cm as cm
 from jobs_tab import clearLayout,clearWidget
 from QPlotForm import QPlotForm
 
@@ -23,7 +23,7 @@ class PlotTab(QWidget):
         # Create the maptlotlib FigureCanvas object,
         # which defines a single set of axes as self.axes.
 
-        plt.rcParams["savefig.directory"] = os.path.dirname(os.curdir)
+        #plt.rcParams["savefig.directory"] = os.path.dirname(os.curdir)
         
         self.layout = QGridLayout()
         
@@ -73,7 +73,7 @@ class PlotTab(QWidget):
 
     def setup_graph_layout(self,_3D=False):
         clearLayout(self.graph_layout)
-        self.sc = MplCanvas(self, width=5, height=4, dpi=100,_3D=_3D)
+        self.sc = Canvas(self, width=5, height=4, dpi=100,_3D=_3D)
         self.toolbar = NavigationToolbar(self.sc, self)
         self.graph_layout.addWidget(self.sc)
         self.graph_layout.addWidget(self.toolbar)
@@ -236,14 +236,12 @@ class PlotTab(QWidget):
 
         self.sc.fig.colorbar(cm.ScalarMappable(mpl.colors.Normalize(), cmap=cmap),ax=ax,location='left')
 
-class MplCanvas(FigureCanvasQTAgg):
+class Canvas:
 
     def __init__(self, parent=None, width=5, height=4, dpi=100,_3D=False):
-        self.fig = Figure(figsize=(width, height), dpi=dpi)
+        self.fig = vp.Fig(figsize=(width, height), show=True)
         if(_3D):self.axes = self.fig.add_subplot(projection='3d')
         else: self.axes = self.fig.add_subplot()
-        
-        super(MplCanvas, self).__init__(self.fig)
 
 
 
