@@ -12,7 +12,7 @@ import matplotlib as mpl
 import matplotlib.cm as cm
 from jobs_tab import clearLayout,clearWidget
 from QPlotForm import QPlotForm
-
+from matplotlib.ticker import StrMethodFormatter
 
 class PlotTab(QWidget):
     def __init__(self,statusMessenger,parent):
@@ -73,7 +73,7 @@ class PlotTab(QWidget):
 
     def setup_graph_layout(self,_3D=False):
         clearLayout(self.graph_layout)
-        self.sc = MplCanvas(self, width=5, height=4, dpi=100,_3D=_3D)
+        self.sc = MplCanvas(self, width=7, height=4, dpi=100,_3D=_3D)
         self.toolbar = NavigationToolbar(self.sc, self)
         self.graph_layout.addWidget(self.sc)
         self.graph_layout.addWidget(self.toolbar)
@@ -216,6 +216,7 @@ class PlotTab(QWidget):
         
     def plot2D(self,X,Y,color,label):
         self.sc.axes.plot(X, Y, color=color,label=label)
+        self.sc.axes.yaxis.set_major_formatter(StrMethodFormatter('{x:.2e}'))
         #self.sc.axes.set_xlabel(X)
         #self.sc.axes.set_ylabel(Y)
         
@@ -238,7 +239,7 @@ class PlotTab(QWidget):
 
 class MplCanvas(FigureCanvasQTAgg):
 
-    def __init__(self, parent=None, width=5, height=4, dpi=100,_3D=False):
+    def __init__(self, parent=None, width=6, height=4, dpi=100,_3D=False):
         self.fig = Figure(figsize=(width, height), dpi=dpi)
         if(_3D):self.axes = self.fig.add_subplot(projection='3d')
         else: self.axes = self.fig.add_subplot()

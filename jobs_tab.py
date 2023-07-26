@@ -279,7 +279,15 @@ class JobEditTab(QWidget):
             self._hasUnsavedChanges = True
             self._current_label.setText(self._current_filename+'*')
 
-
+    def launch_single(self,file,dir):
+        try:
+            worker = PostWorker(file,dir)
+            worker.signals.finished.connect(self.update_progress_bar)
+            worker.signals.started.connect(self.job_started)
+            self.threadpool.start(worker)
+            self.message("Jobs","Computation started from {}".format(dir))
+        except ValueError:
+            self.message("Jobs", "ValueError, check the number of thread to allocate")
 class ModifyJobPopup(QDialog):
     def __init__(self,job : Job,parent):
         super().__init__(parent)
@@ -330,4 +338,6 @@ class ModifyJobPopup(QDialog):
         index = Workspace.jobs.index(self.old_job)
         Workspace.jobs.remove(self.old_job)
         self.close()
-        
+
+
+    

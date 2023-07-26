@@ -108,7 +108,10 @@ class MainWindow(QMainWindow):
         self.open_jobs_action = QAction("Open Jobs File...",self)
         self.jobs_menu.addAction(self.open_jobs_action)
         self.open_jobs_action.triggered.connect(self._openJobs)
-
+        ###Luanch solo job
+        self.launch_single_action = QAction("Launch single...",self)
+        self.jobs_menu.addAction(self.launch_single_action)
+        self.launch_single_action.triggered.connect(self._launchSingle)
         ##Window Menu
         self.window_menu = self.menu_bar.addMenu("&Windows")
         ###Template
@@ -173,19 +176,25 @@ class MainWindow(QMainWindow):
 
     @pyqtSlot()
     def _openTemplate(self,file_name=''):
-        if(file_name==''):file_name = QFileDialog.getOpenFileName(None, 'Open file', os.getcwd())[0]
+        if(file_name==''):file_name = QFileDialog.getOpenFileName(None, 'Open file', os.getcwd(),"Template files (*.mx3)")[0]
         if(file_name!=''):self.template_tab.openFile(file_name)
 
     @pyqtSlot()
     def _openJobs(self):
-        file_name = QFileDialog.getOpenFileName(None, 'Open file', os.getcwd(),"Template Files (*.xml)")[0]
+        file_name = QFileDialog.getOpenFileName(None, 'Open file', os.getcwd(),"Jobs Files (*.xml)")[0]
         Workspace.jobs_file = file_name
         Workspace.path = '/'.join(file_name.split('/')[:-1])
         Workspace.jobs = []
         Workspace.keys = set({})
         if(file_name != ''):self.jobs_tab.openFile(file_name)
 
-    
+    @pyqtSlot()
+    def _launchSingle(self):
+        file_name = QFileDialog.getOpenFileName(None, 'Open file', os.getcwd(),"Mumax3 scripts (*.mx3)")[0]
+        job_name = file_name.split('/')[-1][:-4]
+        dir_name = '/'.join(file_name.split('/')[:-1])
+        os.chdir(dir_name)
+        self.jobs_tab.launch_single(job_name,dir_name)
         
 class MyTableWidget(QWidget):
     
