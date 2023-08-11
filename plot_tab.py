@@ -2,14 +2,18 @@ from PyQt5.QtWidgets import QWidget, QHBoxLayout,QVBoxLayout,QGridLayout,QLabel,
 from PyQt5.QtCore import pyqtSlot,QObject
 import os
 from workspace import Workspace
-import vispy.plot as vp
+import vispy.scene
+from vispy.scene import visuals
+from vispy import app
+import vispy.plot as vis
+
 #import matplotlib
 #matplotlib.use('Qt5Agg')
 #from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg,NavigationToolbar2QT as NavigationToolbar
 #from matplotlib.figure import Figure
 #import matplotlib.pyplot as plt
-#import matplotlib as mpl
-#import matplotlib.cm as cm
+import matplotlib as mpl
+import matplotlib.cm as cm
 from jobs_tab import clearLayout,clearWidget
 from QPlotForm import QPlotForm
 
@@ -27,8 +31,8 @@ class PlotTab(QWidget):
         
         self.layout = QGridLayout()
         
-        #self.sc = MplCanvas(self, width=5, height=4, dpi=100)
-        #self.toolbar = NavigationToolbar(self.sc, self)
+        self.canvas = vispy.scene.SceneCanvas(keys='interactive', show=True)
+        self.view = self.canvas.central_widget.add_view()
         self.graph_layout = QVBoxLayout()
         self.setup_graph_layout()
         
@@ -73,10 +77,13 @@ class PlotTab(QWidget):
 
     def setup_graph_layout(self,_3D=False):
         clearLayout(self.graph_layout)
-        self.sc = Canvas(self, width=5, height=4, dpi=100,_3D=_3D)
-        self.toolbar = NavigationToolbar(self.sc, self)
-        self.graph_layout.addWidget(self.sc)
-        self.graph_layout.addWidget(self.toolbar)
+        if not _3D:
+            self.fig = vis.Fig()
+
+        #axis = visuals.XYZAxis(parent=self.view.scene)
+        self.canvas = vispy.scene.SceneCanvas(keys='interactive', show=True)
+        self.view = self.canvas.central_widget.add_view()
+        self.graph_layout.addWidget(self.fig.native)
 
     
     
@@ -84,21 +91,23 @@ class PlotTab(QWidget):
     def update_plot(self):
         # Drop off the first y element, append a new one.
         #self.sc.axes.cla()  # Clear the canvas.
+        scatter = None
         match self.graph_type_dropdown.currentText():
             case "2D":
                 self.setup_graph_layout()
                 for index,plot in enumerate(self.graph_forms):
                     if  plot.ready and plot.varToPlot != {}:
-                        self.plot2D(plot.vars[plot.varToPlot[0].currentText()],plot.vars[plot.varToPlot[1].currentText()],plot.color.name(),plot.label)
+                        scatter = self.plot2D(plot.vars[plot.varToPlot[0].currentText()],plot.vars[plot.varToPlot[1].currentText()],plot.color.name(),plot.label)
                 if(len(self.graph_forms)>1):
                     self.sc.axes.legend()
             case "3D":
                 self.setup_graph_layout(True)
                 for index,plot in enumerate(self.graph_forms):
                     if  plot.ready and plot.varToPlot != {}:   
-                        self.plot3D(plot.vars[plot.varToPlot[0].currentText()],plot.vars[plot.varToPlot[1].currentText()],plot.vars[plot.varToPlot[2].currentText()])
+                        scatter = self.plot3D(plot.vars[plot.varToPlot[0].currentText()],plot.vars[plot.varToPlot[1].currentText()],plot.vars[plot.varToPlot[2].currentText()])
         # Trigger the canvas to update and redraw.
-        self.sc.draw()
+        self.view.add(scatter)
+        self.canvas.update()
     
     
 
@@ -215,10 +224,9 @@ class PlotTab(QWidget):
         
         
     def plot2D(self,X,Y,color,label):
-        self.sc.axes.plot(X, Y, color=color,label=label)
-        #self.sc.axes.set_xlabel(X)
-        #self.sc.axes.set_ylabel(Y)
-        
+        #self.sc.axes.plot(X, Y, color=color,label=label)
+        scatter = visuals.Line([[X[i],Y[i]]for i in range(len(X))], color = color)
+        return scatter
     def plot3D(self,x,y,z,t=''):
         
         self.sc.axes.set_xlabel('x')
